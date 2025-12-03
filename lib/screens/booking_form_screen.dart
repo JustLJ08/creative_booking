@@ -20,6 +20,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
   DateTime? _selectedDate;
   TimeOfDay? _selectedTime;
   bool _isLoading = false;
+  bool _isAgreed = false; // Track if contract is accepted
 
   // Function to handle Date Picker
   Future<void> _pickDate() async {
@@ -73,8 +74,55 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
     }
   }
 
+  void _showContractDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        title: Text("Service Contract", style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold)),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                "PAYMENT TERMS AGREEMENT",
+                style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 14),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                "1. INITIAL DEPOSIT (30%):\n"
+                "You agree to pay a non-refundable deposit of 30% of the total fee immediately upon booking confirmation to secure the slot.\n\n"
+                "2. FINAL PAYMENT (30%):\n"
+                "The remaining 70% balance is due immediately upon the successful completion of the service/project.\n\n"
+                "3. CANCELLATION:\n"
+                "Cancellations made less than 24 hours before the scheduled time may result in forfeiture of the deposit.\n\n"
+                "4. PAYMENT PROOF:\n"
+                "Please send the receipt of your 30% down payment to the provider immediately after booking to confirm your slot.",
+                style: GoogleFonts.plusJakartaSans(fontSize: 14, height: 1.5, color: Colors.grey[700]),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text("Close", style: GoogleFonts.plusJakartaSans(color: const Color(0xFF4F46E5))),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Submit Booking
   Future<void> _submitBooking() async {
+    if (!_isAgreed) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You must agree to the payment contract to proceed.'), backgroundColor: Colors.red),
+      );
+      return;
+    }
+
     if (_formKey.currentState!.validate() && _selectedDate != null && _selectedTime != null) {
       setState(() => _isLoading = true);
 
@@ -217,7 +265,64 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                 validator: (value) => value!.isEmpty ? "Please enter details" : null,
               ),
 
-              const SizedBox(height: 40),
+              const SizedBox(height: 24),
+              const Divider(),
+              const SizedBox(height: 16),
+
+              // --- CONTRACT AGREEMENT SECTION ---
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                    height: 24, 
+                    width: 24,
+                    child: Checkbox(
+                      value: _isAgreed,
+                      activeColor: const Color(0xFF4F46E5),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
+                      onChanged: (val) {
+                        setState(() => _isAgreed = val ?? false);
+                      },
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: GestureDetector(
+                      onTap: _showContractDialog,
+                      child: RichText(
+                        text: TextSpan(
+                          style: GoogleFonts.plusJakartaSans(color: Colors.grey[700], fontSize: 13, height: 1.4),
+                          children: [
+                            const TextSpan(text: "I agree to pay "),
+                            TextSpan(
+                              text: "30% upfront",
+                              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: Colors.black),
+                            ),
+                            const TextSpan(text: " and the remaining "),
+                            TextSpan(
+                              text: "70% upon completion",
+                              style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, color: Colors.black),
+                            ),
+                            const TextSpan(text: ". View full "),
+                            TextSpan(
+                              text: "Contract Agreement",
+                              style: GoogleFonts.plusJakartaSans(
+                                color: const Color(0xFF4F46E5),
+                                fontWeight: FontWeight.bold,
+                                decoration: TextDecoration.underline,
+                              ),
+                            ),
+                            const TextSpan(text: "."),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              // ----------------------------------
+
+              const SizedBox(height: 32),
               
               // Submit Button
               SizedBox(
@@ -227,6 +332,7 @@ class _BookingFormScreenState extends State<BookingFormScreen> {
                   onPressed: _isLoading ? null : _submitBooking,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFF4F46E5),
+                    disabledBackgroundColor: Colors.grey.shade300,
                     foregroundColor: Colors.white,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     elevation: 0,

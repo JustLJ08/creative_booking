@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../services/api_service.dart';
-// IMPORT the screen we created in the previous step
 import 'interest_selection_screen.dart';
+// FIX: Import the Create Profile Screen
+import 'create_profile_screen.dart'; 
 
 class SignupScreen extends StatefulWidget {
   const SignupScreen({super.key});
@@ -18,6 +19,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final _firstNameController = TextEditingController();
   final _lastNameController = TextEditingController();
   
+  // Default role
   String _selectedRole = 'client'; 
   bool _isLoading = false;
 
@@ -49,9 +51,7 @@ class _SignupScreenState extends State<SignupScreen> {
     );
 
     if (success && mounted) {
-      // --- NEW LOGIC: AUTO-LOGIN & GO TO PREFERENCES ---
-      
-      // Attempt to log in immediately with the new credentials
+      // --- AUTO-LOGIN ---
       final loginSuccess = await ApiService.login(
         _usernameController.text.trim(), 
         _passwordController.text.trim()
@@ -60,24 +60,34 @@ class _SignupScreenState extends State<SignupScreen> {
       setState(() => _isLoading = false);
 
       if (loginSuccess && mounted) {
-        // Success! Go to Interest Selection Screen instead of Login
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: const Text("Account Created! Let's personalize your feed."),
+            content: const Text("Account Created! Setting up profile..."),
             backgroundColor: Colors.green.shade600,
             behavior: SnackBarBehavior.floating,
           ),
         );
 
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => const InterestSelectionScreen(isEditMode: false)),
-        );
+        // --- FIX: NAVIGATION LOGIC ---
+        if (_selectedRole == 'creative') {
+          // 1. If Creative -> Go to Profile Creation Screen
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const CreateProfileScreen()),
+          );
+        } else {
+          // 2. If Client -> Go to Interest Selection (Client Onboarding)
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => const InterestSelectionScreen(isEditMode: false)),
+          );
+        }
+        // -----------------------------
+
       } else {
-        // Fallback: If auto-login fails, send them to manual Login screen
+        // Fallback: If auto-login fails, go to Login Screen manually
         Navigator.pop(context); 
       }
-      // --------------------------------------------------
 
     } else if (mounted) {
       setState(() => _isLoading = false);
@@ -179,7 +189,7 @@ class _SignupScreenState extends State<SignupScreen> {
               
               const SizedBox(height: 32),
               
-              // Modern Role Selection (Cards)
+              // Role Selection
               Text(
                 "I want to...", 
                 style: GoogleFonts.plusJakartaSans(fontWeight: FontWeight.bold, fontSize: 16)

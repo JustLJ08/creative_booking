@@ -4,6 +4,8 @@ from rest_framework.views import APIView
 from rest_framework.decorators import api_view
 from rest_framework.response import Response
 from rest_framework import status, generics, filters
+from django.utils import timezone
+from .models import Contract
 from .models import (
     User,
     IndustryCategory,
@@ -16,6 +18,7 @@ from .models import (
     UserInterest, # Ensure this is imported
 )
 from .serializers import (
+    ContractSerializer,
     RegisterSerializer,
     IndustryCategorySerializer,
     SubCategorySerializer,
@@ -226,7 +229,7 @@ class CreateCreativeProfile(APIView):
         serializer = CreativeProfileSerializer(data=request.data, context={'request': request})
         if serializer.is_valid():
             # For now, we trust the user_id sent from frontend.
-            serializer.save(user_id=user_id, is_verified=True)
+            serializer.save(user_id=user_id, is_verified=False)
             return Response(serializer.data, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -293,3 +296,67 @@ def recommended_creatives(request):
     # 3. Serialize and return
     serializer = CreativeProfileSerializer(creatives, many=True, context={'request': request})
     return Response(serializer.data, status=200)
+
+# Generate or Get Contract for a Booking
+@api_view(['GET'])
+def get_booking_contract(request, booking_id):
+    # 1. Check if booking exists
+    try:
+        booking = Booking.objects.get(id=booking_id)
+    except Booking.DoesNotExist:
+        return Response({"error": "Booking not found"}, status=404)
+
+    # 2. Check if contract exists, if not, create one automatically
+    contract, created = Contract.objects.get_or_create(booking=booking)
+    
+    if created:
+        # Generate dynamic legal text
+        client_name = booking.client.username
+        creative_name = booking.creative.user.username
+        date = booking.booking_date
+        price = booking.creative.hourly_rate # Or package price
+        
+        contract.body_text = f"""
+CONTRACT OF SERVICE AGREEMENT
+
+This Agreement is made between:
+CLIENT: {client_name}
+PROVIDER: {creative_name}
+
+1. SERVICES
+The Provider agrees to perform services on {date} as requested in the booking requirements.
+
+2. PAYMENT
+The Client agrees to pay the rate of ${price} per hour/day upon completion.
+
+3. CANCELLATION
+Cancellations made less than 24 hours before the booking time may incur a fee.
+
+By clicking 'Accept', both parties agree to these terms.
+        """
+        contract.save()
+
+    serializer = ContractSerializer(contract)
+    return Response(serializer.data)
+
+# Sign Contract
+@api_view(['POST'])
+def sign_contract(request, contract_id):
+    try:
+        contract = Contract.objects.get(id=contract_id)
+    except Contract.DoesNotExist:
+        return Response({"error": "Contract not found"}, status=404)
+
+    # Determine who is signing (based on logged in user)
+    # For simplicity, we just toggle the flag sent in body, but real app should check request.user
+    role = request.data.get('role') # 'client' or 'creative'
+    
+    if role == 'client':
+        contract.is_client_signed = True
+        contract.client_signed_at = timezone.now()
+    elif role == 'creative':
+        contract.is_creative_signed = True
+        contract.creative_signed_at = timezone.now()
+        
+    contract.save()
+    return Response({"message": "Contract signed successfully"})

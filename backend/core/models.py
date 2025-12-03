@@ -46,9 +46,10 @@ class CreativeProfile(models.Model):
     bio = models.TextField(help_text="Tell clients about your experience.")
     portfolio_url = models.URLField(blank=True, null=True)
     
-    # ADDED THIS: Profile Image for the avatar in the app
+    # Profile Image for the avatar in the app
     profile_image = models.ImageField(upload_to='creative_avatars/', blank=True, null=True)
     
+    # Kept as hourly_rate as requested
     hourly_rate = models.DecimalField(max_digits=10, decimal_places=2, default=0.00)
     
     rating = models.DecimalField(max_digits=3, decimal_places=2, default=5.00)
@@ -71,7 +72,6 @@ class Booking(models.Model):
 
     client = models.ForeignKey(User, on_delete=models.CASCADE, related_name='bookings_made')
     creative = models.ForeignKey(CreativeProfile, on_delete=models.CASCADE, related_name='bookings_received')
-    # Use string reference 'ServicePackage' to avoid circular dependency issues if order changes
     package = models.ForeignKey('ServicePackage', on_delete=models.SET_NULL, null=True, blank=True)
 
     booking_date = models.DateField()
@@ -126,7 +126,6 @@ class Order(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
 
     def save(self, *args, **kwargs):
-        # Auto-calculate total price if not set
         if not self.total_price:
             self.total_price = self.product.price * self.quantity
         super().save(*args, **kwargs)
@@ -144,3 +143,22 @@ class UserInterest(models.Model):
 
     def __str__(self):
         return f"{self.user.username} -> {self.sub_category.name}"
+    
+
+# ... existing models ...
+
+# 10. Contract Agreement
+class Contract(models.Model):
+    booking = models.OneToOneField(Booking, on_delete=models.CASCADE, related_name='contract')
+    body_text = models.TextField(help_text="The legal text of the agreement.")
+    
+    is_client_signed = models.BooleanField(default=False)
+    client_signed_at = models.DateTimeField(null=True, blank=True)
+    
+    is_creative_signed = models.BooleanField(default=False)
+    creative_signed_at = models.DateTimeField(null=True, blank=True)
+    
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return f"Contract #{self.id} for Booking #{self.booking.id}"

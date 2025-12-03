@@ -1,4 +1,5 @@
 from django.urls import path
+from .views import get_booking_contract, sign_contract
 from .views import (
     RegisterView, LoginView,
     IndustryList, SubCategoryList, CreativeList,
@@ -44,4 +45,7 @@ urlpatterns = [
     # Profile
     path('create-profile/', CreateCreativeProfile.as_view(), name='create-profile'),
     path('creative-profile/', CreativeProfileDetail.as_view(), name='creative-profile-detail'),
+
+    path('contract/booking/<int:booking_id>/', get_booking_contract, name='get-contract'),
+    path('contract/sign/<int:contract_id>/', sign_contract, name='sign-contract'),
 ]

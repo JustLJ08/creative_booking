@@ -70,7 +70,6 @@ class ApiService {
         },
       );
       
-      // Debug print for validation errors (e.g. invalid email)
       if (response.statusCode != 201) {
         print("Register Failed: ${response.statusCode}");
         print("Server Response: ${response.body}"); 
@@ -89,16 +88,14 @@ class ApiService {
   }
 
   // ===========================================================================
-  // PREFERENCES & RECOMMENDATIONS (UPDATED)
+  // PREFERENCES & RECOMMENDATIONS
   // ===========================================================================
 
-  // 1. Save the user's selected SUBCATEGORY IDs
   static Future<bool> saveUserInterests(List<int> subCategoryIds) async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getInt('userId');
     if (userId == null) return false;
 
-    // Ensure your Django URL is correct for saving interests
     final url = Uri.parse('$baseUrl/save-interests/'); 
     
     try {
@@ -107,7 +104,7 @@ class ApiService {
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
           'user_id': userId,
-          'subcategory_ids': subCategoryIds, // Sending SubCategory IDs now
+          'subcategory_ids': subCategoryIds,
         }),
       );
       return response.statusCode == 200 || response.statusCode == 201;
@@ -117,13 +114,11 @@ class ApiService {
     }
   }
 
-  // 2. Fetch Recommended PROVIDERS (Creatives) based on interests
   static Future<List<Creative>> fetchRecommendedCreatives() async {
     final prefs = await SharedPreferences.getInstance();
     final userId = prefs.getInt('userId');
     if (userId == null) return [];
 
-    // Ensure your Django URL is correct for recommendations
     final url = Uri.parse('$baseUrl/creatives/recommended/?user_id=$userId');
 
     try {
@@ -133,8 +128,6 @@ class ApiService {
         final List<dynamic> data = json.decode(response.body);
         return data.map((json) => Creative.fromJson(json)).toList();
       } else {
-        // If the endpoint returns 404 or empty, return empty list
-        // (Home Screen handles empty list by showing "Personalize Feed" button)
         return []; 
       }
     } catch (e) {
@@ -287,7 +280,7 @@ class ApiService {
   static Future<bool> createCreativeProfile(
     int subCategoryId,
     String bio,
-    double hourlyRate,
+    double hourlyRate, // REVERTED: variable name
     String? portfolioUrl,
   ) async {
     final prefs = await SharedPreferences.getInstance();
@@ -301,13 +294,19 @@ class ApiService {
         url,
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'sub_category': subCategoryId,
+          'sub_category_id': subCategoryId,
           'bio': bio,
-          'hourly_rate': hourlyRate,
+          'hourly_rate': hourlyRate, // REVERTED: Sent as hourly_rate
           'portfolio_url': portfolioUrl,
           'user': userId,
         }),
       );
+      
+      if (response.statusCode != 201) {
+        print("Create Profile Error: ${response.statusCode}");
+        print("Body: ${response.body}");
+      }
+
       return response.statusCode == 201;
     } catch (e) {
       print("Profile Creation Error: $e");

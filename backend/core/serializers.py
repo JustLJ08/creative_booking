@@ -128,3 +128,13 @@ class BookingSerializer(serializers.ModelSerializer):
             'booking_date', 'booking_time', 'project_type',
             'requirements', 'status', 'created_at'
         ]
+
+
+# ... existing imports ...
+from .models import Contract # Make sure to import Contract
+
+class ContractSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Contract
+        fields = ['id', 'booking', 'body_text', 'is_client_signed', 'is_creative_signed', 'created_at']
+

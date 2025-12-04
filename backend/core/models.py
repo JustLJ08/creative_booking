@@ -162,3 +162,11 @@ class Contract(models.Model):
 
     def __str__(self):
         return f"Contract #{self.id} for Booking #{self.booking.id}"
+
+
+#chat
+class ChatMessage(models.Model):
+    booking = models.ForeignKey(Booking, on_delete=models.CASCADE)
+    sender = models.ForeignKey(User, on_delete=models.CASCADE)
+    message = models.TextField()
+    created_at = models.DateTimeField(auto_now_add=True)

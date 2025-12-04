@@ -1,5 +1,5 @@
 from django.urls import path # type: ignore
-from .views import AdminPendingCreatives, admin_manage_creative # Import the new views
+from .views import AdminPendingCreatives, admin_manage_creative, get_chat_messages, send_chat_message # Import the new views
 from .views import get_booking_contract, sign_contract
 from .views import (
     RegisterView, LoginView,
@@ -53,4 +53,8 @@ urlpatterns = [
     #admin
     path('admin/pending-creatives/', AdminPendingCreatives.as_view(), name='admin-pending-list'),
     path('admin/manage-creative/<int:pk>/', admin_manage_creative, name='admin-manage-creative'),
+
+    #chat
+    path("chat/<int:booking_id>/", get_chat_messages),
+path("chat/<int:booking_id>/send/", send_chat_message),
 ]

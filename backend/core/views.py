@@ -5,7 +5,7 @@ from rest_framework.decorators import api_view # pyright: ignore[reportMissingIm
 from rest_framework.response import Response # type: ignore
 from rest_framework import status, generics, filters # type: ignore
 from django.utils import timezone # pyright: ignore[reportMissingModuleSource]
-from .models import Contract
+from .models import ChatMessage, Contract
 from .models import (
     User,
     IndustryCategory,
@@ -397,3 +397,19 @@ def admin_manage_creative(request, pk):
         return Response({"message": "Profile declined and removed"}, status=200)
 
     return Response({"error": "Invalid action"}, status=400)
+#chat
+@api_view(['GET'])
+def get_chat_messages(request, booking_id):
+    chat = ChatMessage.objects.filter(booking_id=booking_id).order_by('created_at')
+    data = [{"message": c.message, "isMe": c.sender_id == request.user.id} for c in chat]
+    return Response(data)
+
+@api_view(['POST'])
+def send_chat_message(request, booking_id):
+    message = request.data.get("message")
+    ChatMessage.objects.create(
+        booking_id=booking_id,
+        sender=request.user,
+        message=message
+    )
+    return Response({"status": "sent"})

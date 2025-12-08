@@ -17,7 +17,8 @@ from .models import (
     Order,
     ServicePackage,
     EmailOTP,
-    UserInterest, # Ensure this is imported
+    UserInterest,
+    ChatMessage # Ensure this is imported
 )
 from .serializers import (
     ContractSerializer,

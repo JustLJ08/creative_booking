@@ -83,7 +83,7 @@ WSGI_APPLICATION = 'config.wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.config(
-        default=os.environ.get("psql 'postgresql://neondb_owner:npg_kAJbVd9Rn3PH@ep-dry-snow-a1q99rzh-pooler.ap-southeast-1.aws.neon.tech/creative_booking?sslmode=require&channel_binding=require'"),
+        default=os.environ.get("psql 'postgresql://neondb_owner:npg_kAJbVd9Rn3PH@ep-dry-snow-a1q99rzh-pooler.ap-southeast-1.aws.neon.tech/creative_booking?sslmode=require&channel_binding=require"),
         conn_max_age=600,
         ssl_require=True
     )

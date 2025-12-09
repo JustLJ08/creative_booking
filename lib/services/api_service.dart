@@ -13,13 +13,7 @@ import '../models/order.dart';
 
 class ApiService {
   // CONFIG: Base URL
-  static String get baseUrl {
-    if (kIsWeb) {
-      return 'http://127.0.0.1:8000/api';
-    } else {
-      return 'http://192.168.200.25:8000/api';
-    }
-  }
+  static const String baseUrl ="https://biliran-booking-creative.onrender.com/api";
 
   // ===========================================================================
   // OTP VERIFICATION

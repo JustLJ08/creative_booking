@@ -33,7 +33,7 @@ class _ChatScreenState extends State<ChatScreen> {
     _loadMessages();
     
     // Poll for new messages every 3 seconds (Simulates real-time connection)
-    _timer = Timer.periodic(const Duration(seconds: 3), (timer) {
+    _timer = Timer.periodic(const Duration(seconds: 2), (timer) {
       _loadMessages(isPolling: true);
     });
   }

@@ -10,12 +10,20 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # SECURITY WARNING: keep the secret key used in production secret!
+#SECRET_KEY = os.environ.get("SECRET_KEY")
 SECRET_KEY = 'django-insecure-change-this-key-for-production'
+
 
 # SECURITY WARNING: don't run with debug turned on in production!
 DEBUG = True
 #ALLOWED_HOSTS = ['*']
-ALLOWED_HOSTS = ['localhost', '127.0.0.1', '192.168.200.25']
+ALLOWED_HOSTS = [
+    'biliran-booking-creative.onrender.com',
+    'www.biliran-booking-creative.onrender.com',
+    'localhost',
+    '127.0.0.1',
+]
+
 
 # Application definition
 
@@ -70,24 +78,24 @@ WSGI_APPLICATION = 'config.wsgi.application'
 # ===============================================
 # POSTGRES - CONNECT TO NEON DATABASE
 # ===============================================
-#DATABASES = {
-#    'default': {
-#        'ENGINE': 'django.db.backends.postgresql',
-#        'NAME': 'creative_booking',    
-#        'USER': 'neondb_owner',         
-#        'PASSWORD': 'npg_kAJbVd9Rn3PH', # UPDATED: Matches the reset command above
-#        'HOST': 'ep-dry-snow-a1q99rzh-pooler.ap-southeast-1.aws.neon.tech',        
-#        'PORT': '5432',             # Keep as 2524 (Correct Port)
-#    }
-#}
-
 DATABASES = {
-    'default': dj_database_url.config(
-        default=os.environ.get("psql 'postgresql://neondb_owner:npg_kAJbVd9Rn3PH@ep-dry-snow-a1q99rzh-pooler.ap-southeast-1.aws.neon.tech/creative_booking?sslmode=require&channel_binding=require"),
-        conn_max_age=600,
-        ssl_require=True
-    )
+    'default': {
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME': 'creative_booking',    
+        'USER': 'neondb_owner',         
+        'PASSWORD': 'npg_kAJbVd9Rn3PH', # UPDATED: Matches the reset command above
+        'HOST': 'ep-dry-snow-a1q99rzh-pooler.ap-southeast-1.aws.neon.tech',        
+        'PORT': '5432',             # Keep as 2524 (Correct Port)
+    }
 }
+
+#DATABASES = {
+#    'default': dj_database_url.config(
+#        default=os.environ.get("DATABASE_URL"),
+#        conn_max_age=600,
+#        ssl_require=True
+#    )
+#}
 
 # Password validation
 AUTH_PASSWORD_VALIDATORS = [
@@ -124,8 +132,23 @@ REST_FRAMEWORK = {
 }
 
 # CORS Configuration
+#CORS_ALLOWED_ORIGINS = ["https://biliran-booking-creative.onrender.com","http://127.0.0.1:8000",]
+
 CORS_ALLOW_ALL_ORIGINS = True
+
+
+#Email Config for OTP sending
+#EMAIL_BACKEND = "django.core.mail.backends.smtp.EmailBackend"
+#EMAIL_HOST = "smtp.gmail.com"
+#EMAIL_PORT = 587
+#EMAIL_USE_TLS = True
+#EMAIL_HOST_USER = os.environ.get("EMAIL_HOST_USER")  # your Gmail
+#EMAIL_HOST_PASSWORD = os.environ.get("EMAIL_HOST_PASSWORD")  # Gmail App Password
+
+#DEFAULT_FROM_EMAIL = EMAIL_HOST_USER
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
 DEFAULT_FROM_EMAIL = "no-reply@creativebook.com"
+
+
 

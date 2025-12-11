@@ -1,7 +1,10 @@
 // ignore_for_file: prefer_const_constructors, deprecated_member_use, unused_element, use_build_context_synchronously
 
+
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'dart:async';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // Required for favorites persistence
 import '../services/api_service.dart';
@@ -66,6 +69,13 @@ class _HomeScreenState extends State<HomeScreen> {
     super.initState();
     _loadFavorites(); // Load saved favorites on startup
     _refreshData();
+
+    Timer.periodic(const Duration(seconds: 5), (_) {
+  if (_selectedIndex == 3) {
+    _refreshInboxOnly();
+  }
+});
+
   }
 
   // --- PERSISTENCE LOGIC ---
@@ -158,6 +168,20 @@ class _HomeScreenState extends State<HomeScreen> {
       return dateStr;
     }
   }
+
+  Future<void> _refreshInboxOnly() async {
+  try {
+    final data = await ApiService.fetchMyBookings();
+    if (mounted) {
+      setState(() {
+        _futureInbox = Future.value(data);
+      });
+    }
+  } catch (e) {
+    debugPrint("Inbox refresh error: $e");
+  }
+}
+
 
   Color _getStatusColor(String status) {
     switch (status.toLowerCase()) {
@@ -570,101 +594,143 @@ class _HomeScreenState extends State<HomeScreen> {
     );
   }
 
-  //=========================================
-  //  INBOX TAB
-  //=========================================
-  Widget _buildInboxTab() {
-    return SafeArea(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Container(
-            padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-            color: Colors.white,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Text(
-                      "Messages",
-                      style: GoogleFonts.plusJakartaSans(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w800,
-                        color: kTextPrimary,
+  //// ============================================
+//                 INBOX TAB
+// ============================================
+Widget _buildInboxTab() {
+  return SafeArea(
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        
+        // ---------------- HEADER ----------------
+        Container(
+          padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+          color: Colors.white,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    "Messages",
+                    style: GoogleFonts.plusJakartaSans(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: kTextPrimary,
+                    ),
+                  ),
+
+                  if (_unreadMsgCount > 0)
+                    Container(
+                      padding: const EdgeInsets.all(8),
+                      decoration: const BoxDecoration(
+                        color: kPrimaryLight,
+                        shape: BoxShape.circle,
+                      ),
+                      child: Text(
+                        _unreadMsgCount > 99 ? "99+" : "$_unreadMsgCount",
+                        style: GoogleFonts.plusJakartaSans(
+                          color: kPrimaryColor,
+                          fontWeight: FontWeight.bold,
+                          fontSize: 12,
+                        ),
                       ),
                     ),
-                    if (_unreadMsgCount > 0)
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(color: kPrimaryLight, shape: BoxShape.circle),
-                        child: Text("$_unreadMsgCount", 
-                            style: GoogleFonts.plusJakartaSans(color: kPrimaryColor, fontWeight: FontWeight.bold, fontSize: 12)),
-                      )
-                  ],
+                ],
+              ),
+
+              const SizedBox(height: 16),
+
+              TextField(
+                decoration: InputDecoration(
+                  hintText: "Search conversations...",
+                  hintStyle: GoogleFonts.plusJakartaSans(
+                      color: Colors.grey.shade400, fontSize: 14),
+                  prefixIcon: Icon(Icons.search_rounded,
+                      color: Colors.grey.shade400, size: 20),
+                  filled: true,
+                  fillColor: kBgCanvas,
+                  contentPadding: const EdgeInsets.symmetric(
+                      vertical: 10, horizontal: 16),
+                  border: OutlineInputBorder(
+                      borderRadius: BorderRadius.circular(12),
+                      borderSide: BorderSide.none),
                 ),
-                const SizedBox(height: 16),
-                TextField(
-                  decoration: InputDecoration(
-                    hintText: "Search conversations...",
-                    hintStyle: GoogleFonts.plusJakartaSans(color: Colors.grey.shade400, fontSize: 14),
-                    prefixIcon: Icon(Icons.search_rounded, color: Colors.grey.shade400, size: 20),
-                    filled: true,
-                    fillColor: kBgCanvas,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 10, horizontal: 16),
-                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                    enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
-                  ),
+              ),
+            ],
+          ),
+        ),
+
+        // ---------------- CONVERSATION LIST ----------------
+        Expanded(
+          child: FutureBuilder<List<Booking>>(
+            future: _futureInbox,
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(
+                    child: CircularProgressIndicator(color: kPrimaryColor));
+              }
+
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return _buildInboxEmptyState();
+              }
+
+              // ---------------- REMOVE DUPLICATES ----------------
+              final rawBookings = snapshot.data!;
+              final Map<String, Booking> uniqueProviders = {};
+
+              for (final b in rawBookings) {
+                final name = b.creativeName ?? "Unknown";
+                uniqueProviders.putIfAbsent(name, () => b);
+              }
+
+              final uniqueChats = uniqueProviders.values.toList();
+
+              // --------- Update badge count (temporary logic) ------
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (mounted) {
+                  setState(() {
+                    _unreadMsgCount = uniqueChats.length;
+                  });
+                }
+              });
+
+              return RefreshIndicator(
+                onRefresh: () async => _refreshInboxOnly(),
+                color: kPrimaryColor,
+                child: ListView.builder(
+                  padding: const EdgeInsets.only(top: 8, bottom: 24),
+                  itemCount: uniqueChats.length,
+                  itemBuilder: (context, index) {
+                    final booking = uniqueChats[index];
+                    return _buildChatTile(booking);
+                  },
                 ),
-              ],
-            ),
+              );
+            },
           ),
+        ),
+      ],
+    ),
+  );
+}
 
-          Expanded(
-            child: FutureBuilder<List<Booking>>(
-              future: _futureInbox,
-              builder: (context, snapshot) {
-                if (snapshot.connectionState == ConnectionState.waiting) {
-                  return const Center(child: CircularProgressIndicator(color: kPrimaryColor));
-                }
-
-                if (!snapshot.hasData || snapshot.data!.isEmpty) {
-                  return Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Container(
-                          padding: const EdgeInsets.all(24),
-                          decoration: BoxDecoration(color: kPrimaryLight, shape: BoxShape.circle),
-                          child: Icon(Icons.chat_bubble_outline_rounded, size: 48, color: kPrimaryColor.withOpacity(0.5)),
-                        ),
-                        const SizedBox(height: 16),
-                        Text("No messages yet", style: GoogleFonts.plusJakartaSans(color: kTextPrimary, fontWeight: FontWeight.bold, fontSize: 18)),
-                        const SizedBox(height: 8),
-                        Text("Book a creative to start chatting!", style: GoogleFonts.plusJakartaSans(color: kTextSecondary, fontSize: 14)),
-                      ],
-                    ),
-                  );
-                }
-
-                final bookings = snapshot.data!;
-
-                return RefreshIndicator(
-                  onRefresh: () async => _refreshData(),
-                  color: kPrimaryColor,
-                  child: ListView.builder(
-                    padding: const EdgeInsets.only(top: 8, bottom: 24),
-                    itemCount: bookings.length,
-                    itemBuilder: (context, index) {
-                      final booking = bookings[index];
-                      return _buildChatTile(booking);
-                    },
-                  ),
-                );
-              },
-            ),
+  Widget _buildInboxEmptyState() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(24),
+            decoration: BoxDecoration(color: kPrimaryLight, shape: BoxShape.circle),
+            child: Icon(Icons.chat_bubble_outline_rounded, size: 48, color: kPrimaryColor.withOpacity(0.5)),
           ),
+          const SizedBox(height: 16),
+          Text("No messages yet", style: GoogleFonts.plusJakartaSans(color: kTextPrimary, fontWeight: FontWeight.bold, fontSize: 18)),
+          const SizedBox(height: 8),
+          Text("Start a conversation with a creative.", style: GoogleFonts.plusJakartaSans(color: kTextSecondary, fontSize: 14)),
         ],
       ),
     );
@@ -783,10 +849,10 @@ class _HomeScreenState extends State<HomeScreen> {
               if (_isSearching)
                 _buildSearchResults()
               else ...[
-                const SizedBox(height: 24),
-                _buildRecommendedSection(),
                 const SizedBox(height: 32),
                 _buildCategoriesSection(),
+                const SizedBox(height: 32),
+                _buildRecommendedSection(),
                 const SizedBox(height: 32),
                 _buildProductFeedSection(),
               ],
